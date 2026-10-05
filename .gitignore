@@ -1,0 +1,67 @@
+# -------------------------
+# Environment variables
+# -------------------------
+.env
+.env.*
+!.env.example
+!.env.frontend.example
+
+# -------------------------
+# Python / Backend
+# -------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+.venv/
+venv/
+env/
+ENV/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# -------------------------
+# Databases and local data
+# -------------------------
+*.db
+*.sqlite
+*.sqlite3
+
+# -------------------------
+# Frontend / Node
+# -------------------------
+node_modules/
+dist/
+build/
+.vite/
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+logs/
+
+# -------------------------
+# OS files
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# IDE / Editor files
+# -------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# -------------------------
+# Temporary files
+# -------------------------
+*.tmp
+*.temp
+.cache/
