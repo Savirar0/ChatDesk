@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from database import *
 load_dotenv(); app=FastAPI(title='Chat Desk'); app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173').split(','),allow_credentials=True,allow_methods=['*'],allow_headers=['*'])
 SECRET=os.getenv('JWT_SECRET_KEY','change-me-in-production'); auth=HTTPBearer(auto_error=False); rate={}
+DEFAULT_FALLBACK_MESSAGE="I don't have enough information to answer that. Our team can help."
 @app.on_event('startup')
 def start(): init_db()
 def serial(x): return {c.name:(getattr(x,c.name).isoformat() if isinstance(getattr(x,c.name),datetime) else getattr(x,c.name)) for c in x.__table__.columns}
@@ -79,10 +80,11 @@ def context(db,cid,q):
    if n:r.append((n,p.strip()))
  return '\n\n'.join(x[1][:1500] for x in sorted(r,reverse=True)[:3])
 async def respond(q,ctx,s):
- if not ctx:return s.fallback_message,True
+ fallback=s.fallback_message.strip() or DEFAULT_FALLBACK_MESSAGE
+ if not ctx:return fallback,False
  if not os.getenv('LLM_API_KEY'):return '[Mock responder — configure LLM_API_KEY for AI responses] '+ctx[:900],False
  try:
-  url=os.getenv('LLM_BASE_URL','https://api.groq.com/openai/v1').rstrip('/')+'/chat/completions';prompt=f'Answer ONLY from this knowledge. If missing, reply exactly: {s.fallback_message}. Tone: {s.tone}. Never promise: {s.never_promise}.\nKnowledge:\n{ctx}\nQuestion:{q}'
+  url=os.getenv('LLM_BASE_URL','https://api.groq.com/openai/v1').rstrip('/')+'/chat/completions';prompt=f'Answer ONLY from this knowledge. If missing, reply exactly: {fallback}. Tone: {s.tone}. Never promise: {s.never_promise}.\nKnowledge:\n{ctx}\nQuestion:{q}'
   async with httpx.AsyncClient(timeout=20) as client:r=await client.post(url,headers={'Authorization':'Bearer '+os.environ['LLM_API_KEY']},json={'model':os.getenv('LLM_MODEL','llama-3.1-8b-instant'),'messages':[{'role':'system','content':'Never invent information.'},{'role':'user','content':prompt}],'temperature':.1,'max_tokens':350});r.raise_for_status()
   ans=r.json()['choices'][0]['message']['content'].strip();return ans,ans==s.fallback_message
  except Exception:return '[Mock responder — LLM temporarily unavailable] '+ctx[:900],False

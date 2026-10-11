@@ -17,8 +17,8 @@ handoffs, and bot settings from the dashboard.
 - Authentication with bcrypt password hashes and seven-day JWTs.
 - Tenant-scoped companies, users, knowledge sources, bot settings,
   conversations, messages, issues, and handoff requests.
-- SQLite persistence through SQLAlchemy. `DATABASE_URL` is the planned
-  PostgreSQL migration point.
+- SQLite persistence through SQLAlchemy. The local database is stored in
+  `Backend/echo_mind.db`.
 - Text and Markdown knowledge paste/upload, plus PDF text extraction.
 - Retrieval-only context matching from each company's stored knowledge.
 - An OpenAI-compatible chat-completions adapter for AI responses.
@@ -31,15 +31,15 @@ mock response instead of pretending that an AI response was generated.
 
 ### Frontend
 
-[`frontend-only/`](./frontend-only) is a Vite + React application. The active
+[`Frontend/`](./Frontend) is a Vite + React application. The active
 route implementation is currently concentrated in
-[`src/App.jsx`](./frontend-only/src/App.jsx), with styling from Tailwind CSS.
+[`src/App.jsx`](./Frontend/src/App.jsx), with styling from Tailwind CSS.
 It includes landing, signup/login, authenticated dashboard/settings, and public
 support-page flows.
 
 There are also older or partially migrated components under
-[`src/pages/`](./frontend-only/src/pages/) and
-[`src/api/chatbot.js`](./frontend-only/src/api/chatbot.js). Some of those
+[`src/pages/`](./Frontend/src/pages/) and
+[`src/api/chatbot.js`](./Frontend/src/api/chatbot.js). Some of those
 modules still refer to legacy endpoints such as `/tickets`, `/customer`, or
 `/chat`, while the current backend uses `/api/...` routes. Treat those modules
 as migration work rather than assuming they are all part of the current
@@ -83,7 +83,7 @@ The API is available at `http://localhost:8000`. The health check is
 In another terminal:
 
 ```bash
-cd frontend-only
+cd Frontend
 npm install
 cp .env.frontend.example .env.frontend
 npm run dev
@@ -160,11 +160,11 @@ The current backend routes are grouped under:
 - `/api/settings`, `/api/onboarding`, and `/api/knowledge/upload` for bot
   configuration and knowledge.
 
-`Backend/database.py` is the persistence boundary. Tables are created on
-startup, which is convenient for the prototype but should be replaced with
-versioned migrations before production deployment. Public chat currently has a
-30-message-per-minute, in-memory IP limit; a shared limiter is needed for
-multi-process or multi-instance deployments.
+[`Backend/database.py`](./Backend/database.py) is the persistence boundary.
+Tables are created on startup, which is convenient for the prototype but
+should be replaced with versioned migrations before production deployment.
+Public chat currently has a 30-message-per-minute, in-memory IP limit; a
+shared limiter is needed for multi-process or multi-instance deployments.
 
 ## Suggested next enhancements
 
@@ -174,8 +174,8 @@ multi-process or multi-instance deployments.
    endpoints and role/permission checks.
 3. Add automated backend API tests, frontend tests, and a CI build/lint
    check.
-4. Add database migrations, PostgreSQL deployment configuration, structured
-   logging, and a shared rate limiter.
+4. Add versioned SQLite migrations, structured logging, and a shared rate
+   limiter.
 5. Add safer retrieval (chunking, embeddings/vector search, source citations),
    prompt/version management, usage limits, and provider error reporting.
 6. Add optional image support only after selecting a vision model and defining

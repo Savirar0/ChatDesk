@@ -1,4 +1,4 @@
-"""Persistence boundary. Change DATABASE_URL to a PostgreSQL URL later without changing routes."""
+"""SQLite persistence boundary for the local application."""
 import os
 from datetime import datetime
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, create_engine
