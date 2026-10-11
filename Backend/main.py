@@ -1,4 +1,4 @@
-import os,re,time,io
+import os,re,time,io,logging
 from datetime import datetime,timedelta
 import bcrypt,httpx
 from dotenv import load_dotenv
@@ -12,8 +12,10 @@ from sqlalchemy.orm import Session
 from database import *
 load_dotenv(); app=FastAPI(title='Chat Desk'); app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173').split(','),allow_credentials=True,allow_methods=['*'],allow_headers=['*'])
 SECRET=os.getenv('JWT_SECRET_KEY','change-me-in-production'); auth=HTTPBearer(auto_error=False); rate={}
+logger=logging.getLogger("chatdesk.llm")
 DEFAULT_FALLBACK_MESSAGE="I don't have enough information to answer that. Our team can help."
 GREETING_MESSAGES={"hi","hello","hey","hi there","hello there","good morning","good afternoon","good evening"}
+SEARCH_STOP_WORDS={"a","an","and","are","can","do","does","for","how","i","in","is","it","me","my","of","on","please","the","to","what","where","which","who","with","you"}
 @app.on_event('startup')
 def start(): init_db()
 def serial(x): return {c.name:(getattr(x,c.name).isoformat() if isinstance(getattr(x,c.name),datetime) else getattr(x,c.name)) for c in x.__table__.columns}
@@ -31,7 +33,7 @@ def comp(u,db): return db.get(Company,u.company_id)
 def make_token(u): return jwt.encode({'sub':str(u.id),'exp':datetime.utcnow()+timedelta(days=7)},SECRET,algorithm='HS256')
 class Signup(BaseModel): company_name:str=Field(min_length=2,max_length=150);name:str=Field(min_length=2,max_length=150);email:EmailStr;password:str=Field(min_length=8,max_length=72)
 class Login(BaseModel): email:EmailStr;password:str
-class Config(BaseModel): company_name:str='';website_domain:str='';industry:str='';knowledge_text:str='';faqs:str='';avoid_topics:str='';tone:str='helpful and concise';escalation_rules:str='refunds, legal, angry customers';never_promise:str='';bot_name:str='Support Assistant';welcome_message:str='Hi! How can I help today?';fallback_message:str="I don't have enough information to answer that. Our team can help."
+class Config(BaseModel): company_name:str='';website_domain:str='';industry:str='';knowledge_text:str='';faqs:str='';avoid_topics:str='';tone:str='helpful and concise';escalation_rules:str='refunds, legal, angry customers';never_promise:str='';bot_name:str='Support Assistant';welcome_message:str='Hi! How can I help today?';fallback_message:str="I don't have enough information to answer that. Our team can help.";general_questions_enabled:bool=False
 class Chat(BaseModel): conversation_id:int|None=None;visitor_id:str=Field(min_length=4,max_length=80);message:str=Field(min_length=1,max_length=3000)
 class Handoff(BaseModel): conversation_id:int;name:str=Field(min_length=2);email:EmailStr;phone:str=Field(min_length=6,max_length=50,pattern=r'^[0-9+() .-]+$')
 class Status(BaseModel): status:str
@@ -50,7 +52,7 @@ def login(x:Login,db:Session=Depends(get_db)):
 def me(u=Depends(current),db:Session=Depends(get_db)): return {'user':{'name':u.name,'email':u.email},'company':serial(comp(u,db))}
 def save(db,co,x):
  co.name=x.company_name.strip() or co.name;co.website_domain=x.website_domain.strip();co.industry=x.industry.strip();co.onboarding_complete=True;s=db.query(BotSettings).filter_by(company_id=co.id).one()
- for k in ['avoid_topics','tone','escalation_rules','never_promise','bot_name','welcome_message','fallback_message']:setattr(s,k,getattr(x,k))
+ for k in ['avoid_topics','tone','escalation_rules','never_promise','bot_name','welcome_message','fallback_message','general_questions_enabled']:setattr(s,k,getattr(x,k))
  for t,v in [('Pasted knowledge',x.knowledge_text),('FAQs',x.faqs)]:
   if v.strip():db.add(KnowledgeSource(company_id=co.id,title=t,kind='text',content=v.strip()))
  db.commit()
@@ -72,9 +74,16 @@ def pub(slug:str,db:Session=Depends(get_db)):
  if not co:raise HTTPException(404,'Support page not found')
  s=db.query(BotSettings).filter_by(company_id=co.id).one();return {'company':co.name,'slug':slug,'bot_name':s.bot_name,'welcome_message':s.welcome_message}
 def handoff_needed(q,s):
- terms=['human','agent','representative','refund','legal','lawyer','angry','furious','complaint']+[v.strip().lower() for v in re.split('[,\n]',s.escalation_rules+' '+s.avoid_topics) if v.strip()];return any(t in q.lower() for t in terms)
+ terms=['human','agent','representative','refund','return','cancel','legal','lawyer','angry','furious','complaint']
+ for value in (s.escalation_rules,s.avoid_topics):
+  for line in value.splitlines():
+   line=line.strip().lower()
+   if line and len(line)<80 and not line.endswith('.'):
+    terms.extend(part.strip() for part in line.split(',') if part.strip())
+ normalized=q.lower()
+ return any(re.search(r'\b'+re.escape(term)+r'\b',normalized) for term in set(terms))
 def context(db,cid,q):
- terms=set(re.findall('[a-z0-9]{3,}',q.lower()));r=[]
+ terms=set(re.findall('[a-z0-9]{3,}',q.lower()))-SEARCH_STOP_WORDS;r=[]
  for src in db.query(KnowledgeSource).filter_by(company_id=cid):
   for p in re.split(r'\n\s*\n',src.content):
    n=len(terms&set(re.findall('[a-z0-9]{3,}',p.lower())))
@@ -85,13 +94,19 @@ async def respond(q,ctx,s):
  normalized=re.sub(r"[^a-z ]","",q.strip().lower())
  if normalized in GREETING_MESSAGES:
   return f"Hi! I'm {s.bot_name or 'your support assistant'}. What can I help you with today?",False
- if not ctx:return fallback,False
+ if not ctx and not s.general_questions_enabled:return fallback,False
  if not os.getenv('LLM_API_KEY'):return '[Mock responder — configure LLM_API_KEY for AI responses] '+ctx[:900],False
  try:
-  url=os.getenv('LLM_BASE_URL','https://api.groq.com/openai/v1').rstrip('/')+'/chat/completions';prompt=f'Answer ONLY from this knowledge. If missing, reply exactly: {fallback}. Tone: {s.tone}. Never promise: {s.never_promise}.\nKnowledge:\n{ctx}\nQuestion:{q}'
-  async with httpx.AsyncClient(timeout=20) as client:r=await client.post(url,headers={'Authorization':'Bearer '+os.environ['LLM_API_KEY']},json={'model':os.getenv('LLM_MODEL','llama-3.1-8b-instant'),'messages':[{'role':'system','content':'Never invent information.'},{'role':'user','content':prompt}],'temperature':.1,'max_tokens':350});r.raise_for_status()
-  ans=r.json()['choices'][0]['message']['content'].strip();return ans,ans==s.fallback_message
- except Exception:return '[Mock responder — LLM temporarily unavailable] '+ctx[:900],False
+  url=os.getenv('LLM_BASE_URL','https://api.groq.com/openai/v1').rstrip('/')+'/chat/completions';scope=f'Use ONLY this company knowledge. If the answer is not in it, reply exactly: {fallback}.' if ctx else f'Answer this basic general question briefly. If it asks for professional, dangerous, sensitive, or specialized advice, reply exactly: {fallback}.'
+  prompt=f'{scope} Tone: {s.tone}. Never promise: {s.never_promise}.\nKnowledge:\n{ctx}\nQuestion:{q}'
+  async with httpx.AsyncClient(timeout=30) as client:r=await client.post(url,headers={'Authorization':'Bearer '+os.environ['LLM_API_KEY']},json={'model':os.getenv('LLM_MODEL','llama-3.1-8b-instant'),'messages':[{'role':'system','content':'Answer briefly and directly. Never invent information or show your reasoning.'},{'role':'user','content':prompt}],'temperature':.1,'max_tokens':800});r.raise_for_status()
+  ans=r.json()['choices'][0]['message'].get('content','').strip()
+  if not ans: raise RuntimeError('LLM returned an empty answer')
+  if ans.rstrip(".!?") == fallback.rstrip(".!?"): ans=fallback
+  return ans,ans==fallback
+ except Exception as exc:
+  logger.exception("LLM request failed: %s",exc)
+  return '[AI responder unavailable — check the backend logs]',False
 @app.post('/api/public/support/{slug}/chat')
 async def chat(slug:str,x:Chat,request:Request,db:Session=Depends(get_db)):
  ip=request.client.host if request.client else 'unknown';now=time.time();rate[ip]=[t for t in rate.get(ip,[]) if now-t<60]
@@ -102,7 +117,7 @@ async def chat(slug:str,x:Chat,request:Request,db:Session=Depends(get_db)):
  if cv and (cv.company_id!=co.id or cv.visitor_id!=x.visitor_id):raise HTTPException(403,'Invalid conversation')
  if not cv:cv=Conversation(company_id=co.id,visitor_id=x.visitor_id);db.add(cv);db.flush()
  db.add(Message(conversation_id=cv.id,role='visitor',content=x.message));s=db.query(BotSettings).filter_by(company_id=co.id).one();es=handoff_needed(x.message,s);ans='I’ll have the team get back to you. Please share your name, email, and phone number.' if es else None
- if not ans:ans,es=await respond(x.message,context(db,co.id,x.message),s)
+ if not ans:ans,_=await respond(x.message,context(db,co.id,x.message),s)
  db.add(Message(conversation_id=cv.id,role='assistant',content=ans));cv.updated_at=datetime.utcnow()
  if not db.query(Issue).filter_by(conversation_id=cv.id).first():db.add(Issue(company_id=co.id,conversation_id=cv.id,summary=x.message[:240]))
  db.commit();return {'conversation_id':cv.id,'answer':ans,'handoff_required':es}

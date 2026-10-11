@@ -21,6 +21,9 @@ handoffs, and bot settings from the dashboard.
   `Backend/echo_mind.db`.
 - Text and Markdown knowledge paste/upload, plus PDF text extraction.
 - Retrieval-only context matching from each company's stored knowledge.
+- An optional **Answer basic general questions** setting, disabled by default.
+  When enabled, the bot can answer simple general questions while its
+  escalation and safety guardrails remain active.
 - An OpenAI-compatible chat-completions adapter for AI responses.
 - Public support endpoints, a per-process in-memory rate limit, and dashboard
   endpoints for authenticated company users.
@@ -172,7 +175,8 @@ shared limiter is needed for multi-process or multi-instance deployments.
    align legacy components with the current `/api/...` contracts.
 2. Replace simulated admin/agent dashboard data with tenant-scoped backend
    endpoints and role/permission checks.
-3. Add automated backend API tests, frontend tests, and a CI build/lint
+3. Add automated backend API tests covering company-only and general-question
+   modes, frontend tests, and a CI build/lint
    check.
 4. Add versioned SQLite migrations, structured logging, and a shared rate
    limiter.
