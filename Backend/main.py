@@ -14,6 +14,7 @@ load_dotenv(); app=FastAPI(title='Chat Desk'); app.add_middleware(CORSMiddleware
 SECRET=os.getenv('JWT_SECRET_KEY','change-me-in-production'); auth=HTTPBearer(auto_error=False); rate={}
 logger=logging.getLogger("chatdesk.llm")
 DEFAULT_FALLBACK_MESSAGE="I don't have enough information to answer that. Our team can help."
+ISSUE_IDLE_CLOSE_MINUTES=5
 GREETING_MESSAGES={"hi","hello","hey","hi there","hello there","good morning","good afternoon","good evening"}
 SEARCH_STOP_WORDS={"a","an","and","are","can","do","does","for","how","i","in","is","it","me","my","of","on","please","the","to","what","where","which","who","with","you"}
 @app.on_event('startup')
@@ -130,10 +131,24 @@ def create_handoff(slug:str,x:Handoff,db:Session=Depends(get_db)):
  if not co or not cv or cv.company_id!=co.id:raise HTTPException(404,'Conversation not found')
  db.add(HandoffRequest(company_id=co.id,conversation_id=cv.id,name=x.name,email=x.email,phone=x.phone));db.commit();return {'ok':True,'message':'Thanks — the team will get back to you.'}
 def tq(cls,u,db):return db.query(cls).filter_by(company_id=u.company_id)
+def close_idle_issues(u,db):
+ cutoff=datetime.utcnow()-timedelta(minutes=ISSUE_IDLE_CLOSE_MINUTES)
+ rows=tq(Issue,u,db).filter(Issue.status=='open').all()
+ changed=False
+ for issue in rows:
+  conversation=db.get(Conversation,issue.conversation_id)
+  if conversation and conversation.updated_at and conversation.updated_at<=cutoff:
+   issue.status='closed'
+   if conversation.status=='open':conversation.status='closed'
+   changed=True
+ if changed:db.commit()
 @app.get('/api/dashboard/overview')
-def overview(u=Depends(current),db:Session=Depends(get_db)):return {'total_chats':tq(Conversation,u,db).count(),'open_issues':tq(Issue,u,db).filter(Issue.status!='resolved').count(),'handoff_requests':tq(HandoffRequest,u,db).count()}
+def overview(u=Depends(current),db:Session=Depends(get_db)):
+ close_idle_issues(u,db)
+ return {'total_chats':tq(Conversation,u,db).count(),'open_issues':tq(Issue,u,db).filter(Issue.status.in_(['open','in_progress'])).count(),'handoff_requests':tq(HandoffRequest,u,db).count()}
 @app.get('/api/dashboard/conversations')
 def convs(q:str='',status:str='',handoff:str='',u=Depends(current),db:Session=Depends(get_db)):
+ close_idle_issues(u,db)
  out=[]
  for c in tq(Conversation,u,db).order_by(Conversation.updated_at.desc()):
   ms=db.query(Message).filter_by(conversation_id=c.id).order_by(Message.created_at).all();h=db.query(HandoffRequest).filter_by(conversation_id=c.id).first();txt=' '.join(m.content for m in ms)
@@ -141,7 +156,9 @@ def convs(q:str='',status:str='',handoff:str='',u=Depends(current),db:Session=De
   out.append({**serial(c),'has_handoff':bool(h),'preview':ms[-1].content[:120] if ms else '','messages':[serial(m) for m in ms]})
  return out
 @app.get('/api/dashboard/issues')
-def issues(u=Depends(current),db:Session=Depends(get_db)):return [serial(x) for x in tq(Issue,u,db).order_by(Issue.created_at.desc())]
+def issues(u=Depends(current),db:Session=Depends(get_db)):
+ close_idle_issues(u,db)
+ return [serial(x) for x in tq(Issue,u,db).order_by(Issue.created_at.desc())]
 @app.get('/api/dashboard/handoffs')
 def hands(u=Depends(current),db:Session=Depends(get_db)):return [serial(x) for x in tq(HandoffRequest,u,db).order_by(HandoffRequest.created_at.desc())]
 @app.patch('/api/dashboard/{kind}/{id}')
