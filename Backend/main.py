@@ -107,6 +107,9 @@ async def respond(q,ctx,s):
  except Exception as exc:
   logger.exception("LLM request failed: %s",exc)
   return '[AI responder unavailable — check the backend logs]',False
+def is_fallback_answer(answer,s):
+  fallback=(s.fallback_message.strip() or DEFAULT_FALLBACK_MESSAGE).rstrip(".!?")
+  return answer.strip().rstrip(".!?")==fallback
 @app.post('/api/public/support/{slug}/chat')
 async def chat(slug:str,x:Chat,request:Request,db:Session=Depends(get_db)):
  ip=request.client.host if request.client else 'unknown';now=time.time();rate[ip]=[t for t in rate.get(ip,[]) if now-t<60]
@@ -120,7 +123,7 @@ async def chat(slug:str,x:Chat,request:Request,db:Session=Depends(get_db)):
  if not ans:ans,_=await respond(x.message,context(db,co.id,x.message),s)
  db.add(Message(conversation_id=cv.id,role='assistant',content=ans));cv.updated_at=datetime.utcnow()
  if not db.query(Issue).filter_by(conversation_id=cv.id).first():db.add(Issue(company_id=co.id,conversation_id=cv.id,summary=x.message[:240]))
- db.commit();return {'conversation_id':cv.id,'answer':ans,'handoff_required':es}
+ db.commit();return {'conversation_id':cv.id,'answer':ans,'handoff_required':es,'fallback_available':is_fallback_answer(ans,s)}
 @app.post('/api/public/support/{slug}/handoff')
 def create_handoff(slug:str,x:Handoff,db:Session=Depends(get_db)):
  co=db.query(Company).filter_by(slug=slug).first();cv=db.get(Conversation,x.conversation_id)
