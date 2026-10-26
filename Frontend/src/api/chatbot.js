@@ -1,17 +1,19 @@
 import axios from "axios";
 
-// 🚨 CRITICAL FIX: The local fallback "http://localhost:8000" is removed
-// and replaced with your live Render backend URL.
-// This ensures that if the VITE_API_BASE environment variable is missing 
-// during the Vercel build, it defaults to the correct public address.
-const API_BASE = import.meta?.env?.VITE_API_BASE ?? "https://echo-backend-1-ubeb.onrender.com";
+const API_BASE = import.meta?.env?.VITE_API_BASE ?? "http://localhost:8000";
 
 const api = axios.create({
   baseURL: API_BASE,
 });
 
-export const register = (data) => api.post(`/register`, data);
-export const login = (data) => api.post(`/login`, data);
+export const register = (data) =>
+  api.post(`/api/auth/signup`, {
+    company_name: data.company_name || data.name,
+    name: data.name,
+    email: data.email,
+    password: data.password,
+  });
+export const login = (data) => api.post(`/api/auth/login`, data);
 export const me = (token) => api.get(`/me`, { headers: { Authorization: `Bearer ${token}` } });
 
 export const sendChat = (data) => api.post(`/chat`, data);

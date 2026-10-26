@@ -88,7 +88,7 @@ In another terminal:
 ```bash
 cd Frontend
 npm install
-cp .env.frontend.example .env.frontend
+cp .env.frontend.example .env
 npm run dev
 ```
 
@@ -119,40 +119,6 @@ LLM_BASE_URL=https://openrouter.ai/api/v1
 LLM_MODEL=dots-studio/dots-3-note-preview:free
 ```
 
-For OpenRouter, create your own key at
-<https://openrouter.ai/settings/keys> and paste it into `LLM_API_KEY` in the
-root `.env`. There is no shared or universal free API key that can safely be
-provided here. Do not paste the key into React source, `VITE_*` variables,
-GitHub issues, screenshots, or a committed file. The root `.gitignore` ignores
-`.env` files while preserving the example templates.
-
-The backend sends the key as a bearer token to OpenRouter's compatible endpoint:
-
-```text
-POST https://openrouter.ai/api/v1/chat/completions
-```
-
-### Dots3-Note Preview status
-
-According to the OpenRouter model listing supplied for
-`dots-studio/dots-3-note-preview:free`:
-
-- It is listed at **$0 / free inference**, subject to OpenRouter/provider
-  availability, rate limits, and account policies. “Free” does not mean an
-  unlimited API key.
-- The listing says the preview is scheduled to go away on **December 31,
-  2026**. Re-check the model page before relying on it in production:
-  <https://openrouter.ai/dots-studio/dots-3-note-preview:free>.
-- The available interface is the text/chat-completions API. The listing does
-  **not** advertise image input for this model, so the current Chat Desk
-  integration supports text questions only. Image understanding would require a
-  vision-capable model and a multipart/base64 or image-URL message path in both
-  the frontend and backend.
-
-If the model is unavailable, rate-limited, or retired, choose another
-OpenRouter model and change only `LLM_MODEL` (provided it supports the same
-request shape). Keep `LLM_BASE_URL` at the OpenRouter URL.
-
 ## API and data notes
 
 The current backend routes are grouped under:
@@ -168,24 +134,6 @@ Tables are created on startup, which is convenient for the prototype but
 should be replaced with versioned migrations before production deployment.
 Public chat currently has a 30-message-per-minute, in-memory IP limit; a
 shared limiter is needed for multi-process or multi-instance deployments.
-
-## Suggested next enhancements
-
-1. Finish the frontend API migration: remove hard-coded deployment URLs and
-   align legacy components with the current `/api/...` contracts.
-2. Replace simulated admin/agent dashboard data with tenant-scoped backend
-   endpoints and role/permission checks.
-3. Add automated backend API tests covering company-only and general-question
-   modes, frontend tests, and a CI build/lint
-   check.
-4. Add versioned SQLite migrations, structured logging, and a shared rate
-   limiter.
-5. Add safer retrieval (chunking, embeddings/vector search, source citations),
-   prompt/version management, usage limits, and provider error reporting.
-6. Add optional image support only after selecting a vision model and defining
-   upload validation, storage, privacy, and retention rules.
-7. Add observability, backups, secret rotation, CSRF/session hardening, and
-   data deletion/export workflows before handling production customer data.
 
 ## Important security reminders
 

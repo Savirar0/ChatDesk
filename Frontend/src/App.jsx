@@ -11,17 +11,39 @@ const API = import.meta.env.VITE_API_BASE ?? "",
   auth = () => ({
     Authorization: `Bearer ${localStorage.getItem("echo_token")}`,
   });
+  
 async function api(p, o = {}) {
-  let r = await fetch(API + p, {
-      ...o,
-      headers: {
-        "Content-Type": "application/json",
-        ...auth(),
-        ...(o.headers || {}),
-      },
-    }),
-    d = await r.json();
-  if (!r.ok) throw Error(d.detail || "Something went wrong");
+  let r;
+  try {
+    r = await fetch(API + p, {
+        ...o,
+        headers: {
+          "Content-Type": "application/json",
+          ...auth(),
+          ...(o.headers || {}),
+        },
+      });
+  } catch {
+    throw Error("The API is unavailable. Start the backend and try again.");
+  }
+
+  const body = await r.text();
+  let d = null;
+  if (body) {
+    try {
+      d = JSON.parse(body);
+    } catch {
+      d = null;
+    }
+  }
+  if (!r.ok) {
+    throw Error(
+      d?.detail ||
+        (r.status === 404
+          ? "The API endpoint was not found. Check that the backend is running."
+          : `Request failed (${r.status}). Please try again.`),
+    );
+  }
   return d;
 }
 function Icon({ type, size = 24 }) {
@@ -312,9 +334,12 @@ function Auth({ signup = false }) {
       email: "",
       password: "",
     }),
-    [err, setErr] = useState("");
+    [err, setErr] = useState(""),
+    [submitting, setSubmitting] = useState(false);
   async function submit(e) {
     e.preventDefault();
+    setErr("");
+    setSubmitting(true);
     try {
       let d = await api("/api/auth/" + (signup ? "signup" : "login"), {
         method: "POST",
@@ -323,44 +348,75 @@ function Auth({ signup = false }) {
       localStorage.setItem("echo_token", d.token);
       nav(signup ? "/onboarding" : "/dashboard");
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "Unable to complete that request.");
+    } finally {
+      setSubmitting(false);
     }
   }
   return (
     <main className="auth">
-      <form onSubmit={submit}>
-        <Link to="/">← Chat Desk</Link>
-        <h1>{signup ? "Create your workspace" : "Welcome back"}</h1>
+      <div className="auth-intro">
+        <p className="eyebrow">CHAT DESK / {signup ? "GET STARTED" : "SECURE ACCESS"}</p>
+        <h1>{signup ? "Build support your customers can trust." : "Welcome back."}</h1>
+        <p>
+          {signup
+            ? "Create a private workspace and turn your trusted knowledge into helpful support."
+            : "Sign in to manage your support workspace and keep every conversation moving."}
+        </p>
+      </div>
+      <form className="auth-card" onSubmit={submit}>
+        <Link className="auth-back" to="/">← Back to Chat Desk</Link>
+        <div className="auth-card-heading">
+          <span>{signup ? "01" : "↗"}</span>
+          <div>
+            <h2>{signup ? "Create your workspace" : "Sign in to your workspace"}</h2>
+            <p>{signup ? "It only takes a minute to get started." : "Use your work email to continue."}</p>
+          </div>
+        </div>
         {signup && (
           <>
+            <label htmlFor="company_name">Company name</label>
             <input
+              id="company_name"
               placeholder="Company name"
               required
+              autoComplete="organization"
               onChange={(e) => setF({ ...f, company_name: e.target.value })}
             />
+            <label htmlFor="name">Your name</label>
             <input
+              id="name"
               placeholder="Your name"
               required
+              autoComplete="name"
               onChange={(e) => setF({ ...f, name: e.target.value })}
             />
           </>
         )}
+        <label htmlFor="email">Work email</label>
         <input
+          id="email"
           type="email"
           placeholder="Work email"
           required
+          autoComplete="email"
           onChange={(e) => setF({ ...f, email: e.target.value })}
         />
+        <label htmlFor="password">Password</label>
         <input
+          id="password"
           type="password"
           minLength="8"
           placeholder="Password (8+ characters)"
           required
+          autoComplete={signup ? "new-password" : "current-password"}
           onChange={(e) => setF({ ...f, password: e.target.value })}
         />
-        {err && <p className="error">{err}</p>}
-        <button>{signup ? "Continue" : "Log in"}</button>
-        <p>
+        {err && <p className="error" role="alert">{err}</p>}
+        <button type="submit" disabled={submitting}>
+          {submitting ? "Working..." : signup ? "Create workspace →" : "Log in →"}
+        </button>
+        <p className="auth-switch">
           {signup ? "Already have an account? " : "New to Chat Desk? "}
           <Link to={signup ? "/login" : "/signup"}>
             {signup ? "Log in" : "Sign up"}

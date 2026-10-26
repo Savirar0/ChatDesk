@@ -67,16 +67,21 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       // Use the imported API_BASE_URL
-      const res = await fetch(`${API_BASE_URL}/register`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ company_name: name, name, email, password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Registration failed");
 
       // Optional: fetch user info after registration (or use data.role if your register returns it)
-      const userInfo = { id: data.customer_id, name, email, role: data.role || 'user' };
+      const userInfo = {
+        name: data.user?.name || name,
+        email: data.user?.email || email,
+        role: "user",
+        access_token: data.token,
+      };
       setUser(userInfo);
       setLoading(false);
       return userInfo;
@@ -90,7 +95,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       // Use the imported API_BASE_URL
-      const res = await fetch(`${API_BASE_URL}/login`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -100,10 +105,10 @@ export const AuthProvider = ({ children }) => {
 
       // We assume the backend /login now returns {..., role: 'agent'|'admin'|'user'}
       const loggedInUser = {
-        name: data.name,
-        email: data.email,
+        name: data.user?.name,
+        email: data.user?.email,
         role: data.role || 'user', // <--- CAPTURING THE ROLE
-        access_token: data.access_token,
+        access_token: data.token,
         refresh_token: data.refresh_token,
       };
 

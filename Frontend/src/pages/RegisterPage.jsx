@@ -6,7 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { motion } from 'framer-motion';
 
 // --- CONFIGURATION ---
-const API_BASE_URL = "https://echo-backend-1-ubeb.onrender.com"; 
+const API_BASE_URL = "http://localhost:8000";
 const GOOGLE_AUTH_URL = `${API_BASE_URL}/auth/google/login`;
 // ---------------------
 

@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { motion } from "framer-motion";
 
-const API_BASE_URL = "https://echo-backend-1-ubeb.onrender.com";
+const API_BASE_URL = "http://localhost:8000";
 
 // --- Helper: SLA Color ---
 function slaColor(openedAt) {

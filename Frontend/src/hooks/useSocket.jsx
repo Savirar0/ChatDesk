@@ -1,15 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-
-// 🚨 CRITICAL FIX: The local fallback "ws://localhost:5000/ws" 
-// must be replaced with the public address for Vercel deployment stability.
-// The public address should be handled via the same VITE_API_BASE environment variable 
-// used by Axios and AuthContext, but let's assume VITE_API_WS_URL is set 
-// to the correct WSS URL (e.g., wss://echo-backend-1-ubeb.onrender.com/ws).
-// If VITE_API_WS_URL is not explicitly set, we'll construct the Render address.
-
-// Assuming the base HTTP URL is defined elsewhere or set as an environment variable (like VITE_API_BASE)
-// For demonstration, let's use the explicit public Render WebSocket address structure as the fallback.
-const PUBLIC_WS_URL_FALLBACK = "wss://echo-backend-1-ubeb.onrender.com/ws";
+import { API_BASE_URL } from "../../config";
 
 
 export const useSocket = (userId) => {
@@ -23,9 +13,7 @@ export const useSocket = (userId) => {
   useEffect(() => {
     if (!userId) return;
 
-    // Determine the WS URL: use env variable, or fall back to the public Render URL.
-    // NOTE: If VITE_API_WS_URL is not set, this defaults to the correct public path.
-    const wsUrl = import.meta.env.VITE_API_WS_URL || PUBLIC_WS_URL_FALLBACK;
+    const wsUrl = `${API_BASE_URL.replace(/^http/, "ws")}/ws`;
     
     // Connect to FastAPI WebSocket
     // NOTE: Based on your backend, the FastAPI endpoint is /ws, 
