@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 // 🎯 Import the API_BASE_URL from your new config.js file
-import { API_BASE_URL } from '../../config'; 
+import { API_BASE_URL } from "../../config";
 
 // Create Auth Context
 const AuthContext = createContext();
@@ -38,9 +38,9 @@ export const AuthProvider = ({ children }) => {
 
     // --- FIX: Correct WebSocket URL Construction using imported API_BASE_URL ---
     const wsProtocol = API_BASE_URL.startsWith("https") ? "wss" : "ws";
-    
+
     // Extract only the host/path portion, removing the http(s):// prefix
-    const wsHost = API_BASE_URL.replace(/^https?:\/\//, '');
+    const wsHost = API_BASE_URL.replace(/^https?:\/\//, "");
 
     // Construct the final, correct WebSocket URL
     const wsUrl = `${wsProtocol}://${wsHost}/ws?token=${user.access_token}`;
@@ -107,7 +107,7 @@ export const AuthProvider = ({ children }) => {
       const loggedInUser = {
         name: data.user?.name,
         email: data.user?.email,
-        role: data.role || 'user', // <--- CAPTURING THE ROLE
+        role: data.role || "user", // <--- CAPTURING THE ROLE
         access_token: data.token,
         refresh_token: data.refresh_token,
       };
@@ -121,11 +121,11 @@ export const AuthProvider = ({ children }) => {
       const userInfo = await userInfoRes.json();
       const loggedInUser = { ...userInfo, access_token: data.access_token, refresh_token: data.refresh_token };
       */
-      
+
       setUser(loggedInUser);
       setLoading(false);
       // Return the object containing the role for the Login component to use.
-      return loggedInUser; 
+      return loggedInUser;
     } catch (err) {
       setLoading(false);
       throw err;
@@ -135,13 +135,15 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
+      ws.close();
     }
     setWs(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout, ws }}>
+    <AuthContext.Provider
+      value={{ user, loading, register, login, logout, ws }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -14,7 +14,8 @@ export const register = (data) =>
     password: data.password,
   });
 export const login = (data) => api.post(`/api/auth/login`, data);
-export const me = (token) => api.get(`/me`, { headers: { Authorization: `Bearer ${token}` } });
+export const me = (token) =>
+  api.get(`/me`, { headers: { Authorization: `Bearer ${token}` } });
 
 export const sendChat = (data) => api.post(`/chat`, data);
 export const getCases = (customerId) => api.get(`/cases/${customerId}`);

@@ -1,26 +1,34 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  MessageCircle, Users, Clock, Shield, Sparkles, Zap, Heart,
-  ChevronLeft, User, Briefcase
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+  MessageCircle,
+  Users,
+  Clock,
+  Shield,
+  Sparkles,
+  Zap,
+  Heart,
+  ChevronLeft,
+  User,
+  Briefcase,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // --- Global Animation Variants ---
 const heroVariants = {
   hidden: { opacity: 0, y: 40 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, type: 'spring' } }
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, type: "spring" } },
 };
 
 const iconJump = {
   rest: { y: 0 },
-  hover: { y: -12, transition: { type: 'spring', stiffness: 300 } }
+  hover: { y: -12, transition: { type: "spring", stiffness: 300 } },
 };
 
 const pageTransitionVariants = {
   initial: { opacity: 0, x: 100 },
   in: { opacity: 1, x: 0 },
-  out: { opacity: 0, x: -100 }
+  out: { opacity: 0, x: -100 },
 };
 
 // --- Role Data (Professional Look) ---
@@ -51,20 +59,20 @@ const roles = [
     circle: "from-emerald-50 to-emerald-100",
     text: "text-emerald-700",
     button: "bg-emerald-600 hover:bg-emerald-700 text-white",
-  }
+  },
 ];
 
 const roleCardVariants = {
   rest: {
     scale: 1,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-    transition: { type: "spring", stiffness: 300, damping: 20 }
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+    transition: { type: "spring", stiffness: 300, damping: 20 },
   },
   hover: {
     scale: 1.05,
-    boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-    transition: { type: "spring", stiffness: 300, damping: 10 }
-  }
+    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+    transition: { type: "spring", stiffness: 300, damping: 10 },
+  },
 };
 
 // --- Feature Card Component (Helper) ---
@@ -125,7 +133,8 @@ const InitialLandingPage = ({ onGetStarted }) => (
       <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-4">
         <span className="bg-gradient-to-r from-blue-600 via-pink-500 to-purple-600 bg-clip-text text-transparent">
           Customer Support
-        </span> <br />
+        </span>{" "}
+        <br />
         <span className="text-4xl md:text-6xl block mt-2">Made Simple</span>
       </h1>
       <motion.p
@@ -134,13 +143,15 @@ const InitialLandingPage = ({ onGetStarted }) => (
         transition={{ delay: 0.4, duration: 1.0 }}
         className="text-xl text-gray-600 max-w-2xl mx-auto my-3 mb-6"
       >
-        Get instant help from Chat Desk or connect with our expert support team.<br />
-        Solve your problems 24/7 with lightning-fast responses, secure conversations, and joyful experience!
+        Get instant help from Chat Desk or connect with our expert support team.
+        <br />
+        Solve your problems 24/7 with lightning-fast responses, secure
+        conversations, and joyful experience!
       </motion.p>
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.8, duration: 0.6, type: 'spring' }}
+        transition={{ delay: 0.8, duration: 0.6, type: "spring" }}
       >
         <button
           onClick={onGetStarted}
@@ -153,10 +164,30 @@ const InitialLandingPage = ({ onGetStarted }) => (
 
     {/* Animated Features Section */}
     <div className="max-w-4xl mx-auto mt-20 grid md:grid-cols-2 gap-10">
-      <FeatureCard Icon={Users} title="Human + AI Agents" description="Get a perfect blend of helpful humans and intelligent AI working together." delay={0} />
-      <FeatureCard Icon={Clock} title="24/7 Availability" description="No more waiting! Help is always available, any time, any day." delay={0.2} />
-      <FeatureCard Icon={Shield} title="End-to-End Security" description="Your conversations and data are always securely encrypted." delay={0.4} />
-      <FeatureCard Icon={Zap} title="Lightning Fast" description="Experience responses at the speed of thought—no more delays." delay={0.6} />
+      <FeatureCard
+        Icon={Users}
+        title="Human + AI Agents"
+        description="Get a perfect blend of helpful humans and intelligent AI working together."
+        delay={0}
+      />
+      <FeatureCard
+        Icon={Clock}
+        title="24/7 Availability"
+        description="No more waiting! Help is always available, any time, any day."
+        delay={0.2}
+      />
+      <FeatureCard
+        Icon={Shield}
+        title="End-to-End Security"
+        description="Your conversations and data are always securely encrypted."
+        delay={0.4}
+      />
+      <FeatureCard
+        Icon={Zap}
+        title="Lightning Fast"
+        description="Experience responses at the speed of thought—no more delays."
+        delay={0.6}
+      />
     </div>
 
     {/* Trust Section */}
@@ -209,7 +240,7 @@ const RoleSelectionPage = ({ onBack }) => (
 
       {/* Roles Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {roles.map(role => (
+        {roles.map((role) => (
           <motion.div
             key={role.name}
             initial="rest"
@@ -229,10 +260,14 @@ const RoleSelectionPage = ({ onBack }) => (
             </div>
 
             {/* Role Name */}
-            <h3 className={`text-2xl font-bold ${role.text} mb-2`}>{role.name}</h3>
+            <h3 className={`text-2xl font-bold ${role.text} mb-2`}>
+              {role.name}
+            </h3>
 
             {/* Description */}
-            <p className="text-md text-gray-600 mb-6 text-center flex-grow">{role.desc}</p>
+            <p className="text-md text-gray-600 mb-6 text-center flex-grow">
+              {role.desc}
+            </p>
 
             {/* Login Button */}
             <Link to={role.link} className="w-full mt-auto">
@@ -258,7 +293,6 @@ const RoleSelectionPage = ({ onBack }) => (
     </div>
   </motion.div>
 );
-
 
 // ==========================================================
 // 3. Main Export Component (Manages State)

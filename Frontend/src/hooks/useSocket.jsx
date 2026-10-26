@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { API_BASE_URL } from "../../config";
 
-
 export const useSocket = (userId) => {
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -14,11 +13,11 @@ export const useSocket = (userId) => {
     if (!userId) return;
 
     const wsUrl = `${API_BASE_URL.replace(/^http/, "ws")}/ws`;
-    
+
     // Connect to FastAPI WebSocket
-    // NOTE: Based on your backend, the FastAPI endpoint is /ws, 
-    // and you are appending the userId to the path, which suggests the backend endpoint 
-    // should be defined as "/ws/{userId}". This structure might be faulty 
+    // NOTE: Based on your backend, the FastAPI endpoint is /ws,
+    // and you are appending the userId to the path, which suggests the backend endpoint
+    // should be defined as "/ws/{userId}". This structure might be faulty
     // if your backend only uses "/ws". Let's assume your backend is looking for a path parameter.
     const ws = new WebSocket(`${wsUrl}/${userId}`);
     socketRef.current = ws;
@@ -60,15 +59,15 @@ export const useSocket = (userId) => {
       setConnected(false);
       console.log("❌ WebSocket disconnected");
     };
-    
+
     ws.onerror = (err) => {
-        console.error("❌ WebSocket error:", err);
+      console.error("❌ WebSocket error:", err);
     };
 
     return () => {
       // Safely close on component unmount
       if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.close();
+        ws.close();
       }
     };
   }, [userId]);

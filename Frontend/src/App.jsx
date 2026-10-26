@@ -11,18 +11,18 @@ const API = import.meta.env.VITE_API_BASE ?? "",
   auth = () => ({
     Authorization: `Bearer ${localStorage.getItem("echo_token")}`,
   });
-  
+
 async function api(p, o = {}) {
   let r;
   try {
     r = await fetch(API + p, {
-        ...o,
-        headers: {
-          "Content-Type": "application/json",
-          ...auth(),
-          ...(o.headers || {}),
-        },
-      });
+      ...o,
+      headers: {
+        "Content-Type": "application/json",
+        ...auth(),
+        ...(o.headers || {}),
+      },
+    });
   } catch {
     throw Error("The API is unavailable. Start the backend and try again.");
   }
@@ -356,8 +356,12 @@ function Auth({ signup = false }) {
   return (
     <main className="auth">
       <div className="auth-intro">
-        <p className="eyebrow">CHAT DESK / {signup ? "GET STARTED" : "SECURE ACCESS"}</p>
-        <h1>{signup ? "Build support your customers can trust." : "Welcome back."}</h1>
+        <p className="eyebrow">
+          CHAT DESK / {signup ? "GET STARTED" : "SECURE ACCESS"}
+        </p>
+        <h1>
+          {signup ? "Build support your customers can trust." : "Welcome back."}
+        </h1>
         <p>
           {signup
             ? "Create a private workspace and turn your trusted knowledge into helpful support."
@@ -365,12 +369,20 @@ function Auth({ signup = false }) {
         </p>
       </div>
       <form className="auth-card" onSubmit={submit}>
-        <Link className="auth-back" to="/">← Back to Chat Desk</Link>
+        <Link className="auth-back" to="/">
+          ← Back to Chat Desk
+        </Link>
         <div className="auth-card-heading">
           <span>{signup ? "01" : "↗"}</span>
           <div>
-            <h2>{signup ? "Create your workspace" : "Sign in to your workspace"}</h2>
-            <p>{signup ? "It only takes a minute to get started." : "Use your work email to continue."}</p>
+            <h2>
+              {signup ? "Create your workspace" : "Sign in to your workspace"}
+            </h2>
+            <p>
+              {signup
+                ? "It only takes a minute to get started."
+                : "Use your work email to continue."}
+            </p>
           </div>
         </div>
         {signup && (
@@ -412,9 +424,17 @@ function Auth({ signup = false }) {
           autoComplete={signup ? "new-password" : "current-password"}
           onChange={(e) => setF({ ...f, password: e.target.value })}
         />
-        {err && <p className="error" role="alert">{err}</p>}
+        {err && (
+          <p className="error" role="alert">
+            {err}
+          </p>
+        )}
         <button type="submit" disabled={submitting}>
-          {submitting ? "Working..." : signup ? "Create workspace →" : "Log in →"}
+          {submitting
+            ? "Working..."
+            : signup
+              ? "Create workspace →"
+              : "Log in →"}
         </button>
         <p className="auth-switch">
           {signup ? "Already have an account? " : "New to Chat Desk? "}

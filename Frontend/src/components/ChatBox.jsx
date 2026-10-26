@@ -39,13 +39,27 @@ export default function ChatBox() {
 
   return (
     <div style={{ maxWidth: 720, margin: "2rem auto" }}>
-      <div style={{ border: "1px solid #ddd", minHeight: 240, padding: 16, borderRadius: 12 }}>
+      <div
+        style={{
+          border: "1px solid #ddd",
+          minHeight: 240,
+          padding: 16,
+          borderRadius: 12,
+        }}
+      >
         {messages.map((m, idx) => (
-          <p key={idx}><b>{m.role}:</b> {m.content}</p>
+          <p key={idx}>
+            <b>{m.role}:</b> {m.content}
+          </p>
         ))}
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <input style={{ flex: 1 }} value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type your message..." />
+        <input
+          style={{ flex: 1 }}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your message..."
+        />
         <button onClick={handleSend}>Send</button>
       </div>
     </div>
